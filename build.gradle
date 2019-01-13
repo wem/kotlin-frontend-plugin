@@ -6,17 +6,50 @@ buildscript {
 }
 
 plugins {
+    id "org.jetbrains.kotlin.jvm" version "1.3.11" apply false
     id "com.jfrog.bintray" version "1.8.4" apply false
     id 'net.researchgate.release' version '2.7.0' apply false
+    id 'nu.studer.credentials' version '1.0.4'
 }
 
 group = 'org.jetbrains.kotlin'
 
-allprojects {
+String mavenUsername = credentials.mvnUsername
+String mavenPassword = credentials.mvnPassword
+String distributionUrl = "${version.toString().contains("SNAPSHOT") ? 'https://repository.source-motion.ch/artifactory/libs-snapshot-local' : 'https://repository.source-motion.ch/artifactory/libs-release-local'}"
+
+subprojects {
+    apply plugin: 'maven-publish'
     group = 'org.jetbrains.kotlin'
 
     repositories {
-        jcenter()
-        mavenCentral()
+        mavenLocal()
+        maven {
+            url 'https://repository.source-motion.ch/artifactory/libs-release'
+            credentials {
+                username = mavenUsername
+                password = mavenPassword
+            }
+        }
+        maven {
+            url 'https://repository.source-motion.ch/artifactory/libs-snapshot'
+            credentials {
+                username = mavenUsername
+                password = mavenPassword
+            }
+        }
+    }
+
+
+    publishing {
+        repositories {
+            maven {
+                url = distributionUrl
+                credentials {
+                    username = mavenUsername
+                    password = mavenPassword
+                }
+            }
+        }
     }
 }

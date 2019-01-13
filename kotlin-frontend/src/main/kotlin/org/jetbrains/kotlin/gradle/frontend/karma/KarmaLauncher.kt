@@ -1,19 +1,23 @@
 package org.jetbrains.kotlin.gradle.frontend.karma
 
-import org.gradle.api.*
-import org.jetbrains.kotlin.gradle.dsl.*
-import org.jetbrains.kotlin.gradle.frontend.*
-import org.jetbrains.kotlin.gradle.frontend.util.*
-import org.jetbrains.kotlin.gradle.frontend.webpack.*
-import org.jetbrains.kotlin.gradle.tasks.*
-import java.io.*
+import org.gradle.api.Project
+import org.gradle.api.Task
+import org.jetbrains.kotlin.gradle.dsl.KotlinJsCompile
+import org.jetbrains.kotlin.gradle.frontend.KotlinFrontendExtension
+import org.jetbrains.kotlin.gradle.frontend.Launcher
+import org.jetbrains.kotlin.gradle.frontend.PackageManager
+import org.jetbrains.kotlin.gradle.frontend.util.karmaExtension
+import org.jetbrains.kotlin.gradle.frontend.util.withTask
+import org.jetbrains.kotlin.gradle.frontend.webpack.GenerateWebPackConfigTask
+import org.jetbrains.kotlin.gradle.tasks.Kotlin2JsCompile
+import java.io.File
 
 object KarmaLauncher : Launcher {
     override fun apply(packageManager: PackageManager, project: Project,
                        packagesTask: Task, startTask: Task, stopTask: Task) {
         val karma = project.extensions.create("karma", KarmaExtension::class.java)
         project.afterEvaluate {
-            val compileTestKotlin = project.tasks.findByPath("compileTestKotlin2Js")
+            val compileTestKotlin = getTestCompileTask(project)
 
             if (compileTestKotlin != null && (compileTestKotlin as? Kotlin2JsCompile)?.kotlinOptions?.outputFile != null) {
                 val karmaConfigTask = project.tasks.create("karma-config", KarmaConfigTask::class.java) {
@@ -99,5 +103,12 @@ object KarmaLauncher : Launcher {
         return project.tasks.filterIsInstance<KotlinJsCompile>()
                 .filter { it.name.contains("test", ignoreCase = true) && it.kotlinOptions.outputFile != null }
                 .any { File(it.kotlinOptions.outputFile).exists() }
+    }
+
+    /**
+     * @return Kotlin test compile task. Depending if MPP or "old" structure / tasks
+     */
+    private fun getTestCompileTask(project: Project): Task? {
+        return project.tasks.findByPath("compileTestKotlin2Js") ?: project.tasks.findByPath("compileTestKotlinJs")
     }
 }
